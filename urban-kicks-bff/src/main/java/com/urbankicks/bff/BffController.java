@@ -1,5 +1,6 @@
 package com.urbankicks.bff;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestClient;
 
@@ -8,6 +9,12 @@ import org.springframework.web.client.RestClient;
 public class BffController {
 
     private final RestClient restClient = RestClient.create();
+
+    @Value("${urban-kicks.services.catalog}")
+    private String catalogUrl;
+
+    @Value("${urban-kicks.services.orders}")
+    private String ordersUrl;
 
     @GetMapping("/public/hello")
     public String hello() {
@@ -27,7 +34,7 @@ public class BffController {
     @GetMapping("/catalog/products")
     public String products() {
         return restClient.get()
-                .uri("http://localhost:8082/products")
+                .uri(catalogUrl + "/products")
                 .retrieve()
                 .body(String.class);
     }
@@ -35,18 +42,18 @@ public class BffController {
     @PostMapping("/orders")
     public String createOrder(@RequestBody String body) {
         return restClient.post()
-            .uri("http://localhost:8081/orders")
-            .header("Content-Type", "application/json")
-            .body(body)
-            .retrieve()
-            .body(String.class);
+                .uri(ordersUrl + "/orders")
+                .header("Content-Type", "application/json")
+                .body(body)
+                .retrieve()
+                .body(String.class);
     }
 
     @GetMapping("/orders")
     public String getOrders() {
         return restClient.get()
-            .uri("http://localhost:8081/orders")
-            .retrieve()
-            .body(String.class);
+                .uri(ordersUrl + "/orders")
+                .retrieve()
+                .body(String.class);
     }
 }
