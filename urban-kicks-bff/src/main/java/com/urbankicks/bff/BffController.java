@@ -56,4 +56,17 @@ public class BffController {
                 .retrieve()
                 .body(String.class);
     }
+
+    @PatchMapping("/orders/{id}/status")
+    public String updateOrderStatus(
+            @PathVariable Long id,
+            @RequestBody String body
+    ) {
+        return restClient.patch()
+                .uri(ordersUrl + "/orders/" + id + "/status")
+                .header("Content-Type", "application/json")
+                .body(body)
+                .retrieve()
+                .body(String.class);
+    }
 }
