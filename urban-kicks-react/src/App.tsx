@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "react-oidc-context";
+import { apiFetch } from "./api";
 import "./App.css";
 
 interface Product {
@@ -54,6 +55,7 @@ function App() {
     (auth.user?.profile["cognito:groups"] as string[]) || [];
 
   const email = auth.user?.profile.email;
+  const token = auth.user?.access_token;
 
   // =========================
   // CATÁLOGO
@@ -63,30 +65,17 @@ function App() {
       setLoadingProducts(true);
       setProductError("");
 
-      const token = auth.user?.access_token;
-
       if (!token) {
         setProductError("No hay token de acceso.");
         return;
       }
 
-      const response = await fetch(
-        "https://y0fk5u47u7.execute-api.us-east-1.amazonaws.com/api/catalog/products",
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        },
+      const response = await apiFetch(
+        "/api/catalog/products",
+        token,
       );
 
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
-      }
-
       const data = await response.json();
-
       setProducts(data);
     } catch (error) {
       console.error(error);
@@ -104,30 +93,17 @@ function App() {
       setLoadingOrders(true);
       setOrderError("");
 
-      const token = auth.user?.access_token;
-
       if (!token) {
         setOrderError("No hay token de acceso.");
         return;
       }
 
-      const response = await fetch(
-        "https://y0fk5u47u7.execute-api.us-east-1.amazonaws.com/api/orders",
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        },
+      const response = await apiFetch(
+        "/api/orders",
+        token,
       );
 
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
-      }
-
       const data = await response.json();
-
       setOrders(data);
     } catch (error) {
       console.error(error);
@@ -145,31 +121,22 @@ function App() {
       setOrderError("");
       setOrderMessage("");
 
-      const token = auth.user?.access_token;
-
       if (!token) {
         setOrderError("No hay token de acceso.");
         return;
       }
 
-      const response = await fetch(
-        "https://y0fk5u47u7.execute-api.us-east-1.amazonaws.com/api/orders",
+      const response = await apiFetch(
+        "/api/orders",
+        token,
         {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
           body: JSON.stringify({
             product: "Air Runner",
             quantity: 1,
           }),
         },
       );
-
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
-      }
 
       const data = await response.json();
 
@@ -192,30 +159,21 @@ function App() {
       setOrderError("");
       setOrderMessage("");
 
-      const token = auth.user?.access_token;
-
       if (!token) {
         setOrderError("No hay token de acceso.");
         return;
       }
 
-      const response = await fetch(
-        `https://y0fk5u47u7.execute-api.us-east-1.amazonaws.com/api/orders/${id}/status`,
+      const response = await apiFetch(
+        `/api/orders/${id}/status`,
+        token,
         {
           method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
           body: JSON.stringify({
             status: "PAID",
           }),
         },
       );
-
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
-      }
 
       const data = await response.json();
 
@@ -277,7 +235,6 @@ function App() {
       </header>
 
       <main className="container">
-
         <section className="hero">
           <h1>URBAN-KICKS</h1>
 
