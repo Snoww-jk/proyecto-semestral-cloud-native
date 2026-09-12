@@ -25,19 +25,28 @@ public class BffController {
     @Value("${urban-kicks.services.audit}")
     private String auditUrl;
 
+    // =========================
     // PUBLICO
+    // =========================
+
     @GetMapping("/public/hello")
     public String hello() {
         return "Urban-Kicks API";
     }
 
+    // =========================
     // USUARIO AUTENTICADO
+    // =========================
+
     @GetMapping("/private/hello")
     public String privateHello() {
         return "Usuario autenticado";
     }
 
+    // =========================
     // ADMIN
+    // =========================
+
     @GetMapping("/admin/hello")
     public String adminHello() {
         return "Acceso administrador";
@@ -75,6 +84,14 @@ public class BffController {
                 .body(String.class);
     }
 
+    @GetMapping("/orders/{id}")
+    public String getOrderById(@PathVariable Long id) {
+        return restClient.get()
+                .uri(ordersUrl + "/orders/" + id)
+                .retrieve()
+                .body(String.class);
+    }
+
     @PostMapping("/orders")
     public String createOrder(@RequestBody String body) {
         return restClient.post()
@@ -96,6 +113,14 @@ public class BffController {
                 .body(body)
                 .retrieve()
                 .body(String.class);
+    }
+
+    @DeleteMapping("/orders/{id}")
+    public void deleteOrder(@PathVariable Long id) {
+        restClient.delete()
+                .uri(ordersUrl + "/orders/" + id)
+                .retrieve()
+                .toBodilessEntity();
     }
 
     // =========================
