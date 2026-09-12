@@ -1,125 +1,117 @@
 import { useState } from "react";
 import { useAuth } from "react-oidc-context";
+import "./App.css";
+
 import { apiFetch } from "./api";
 import { cognitoLogoutUrl } from "./authConfig";
 import RoleGuard from "./RoleGuard";
 import ServiciosPanel from "./ServiciosPanel";
-import "./App.css";
 
 interface Product {
   id: number;
   name: string;
-  brand?: string;
-  size?: number;
-  price?: number;
-  stock?: number;
+  brand: string;
+  size: number;
+  price: number;
+  stock: number;
 }
 
 interface Order {
   id: number;
-  product?: string;
-  quantity?: number;
-  status?: string;
+  product: string;
+  quantity: number;
+  status: string;
 }
 
 function App() {
   const auth = useAuth();
 
-  const [productos, setProductos] = useState<Product[]>([]);
-  const [pedidos, setPedidos] = useState<Order[]>([]);
-  const [mensaje, setMensaje] = useState("");
-  const [cargando, setCargando] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
 
-  const roles =
-    (auth.user?.profile["cognito:groups"] as string[]) || [];
+  const [loadingProducts, setLoadingProducts] =
+    useState(false);
 
-  const email =
-    auth.user?.profile.email?.toString() || "Sin correo";
+  const [loadingOrders, setLoadingOrders] =
+    useState(false);
 
-  const token = auth.user?.access_token;
+  const [message, setMessage] = useState("");
+  const [orderMessage, setOrderMessage] = useState("");
 
-  const cerrarSesion = async () => {
-    await auth.removeUser();
-    window.location.href = cognitoLogoutUrl;
-  };
+  const accessToken = auth.user?.access_token;
 
-  const cargarProductos = async () => {
-    if (!token) {
-      setMensaje("No hay token de acceso.");
+  async function cargarProductos() {
+    if (!accessToken) {
+      setMessage("No hay token disponible");
       return;
     }
 
     try {
-      setCargando(true);
-      setMensaje("");
+      setLoadingProducts(true);
 
       const response = await apiFetch(
         "/api/catalog/products",
-        token,
+        accessToken,
       );
 
       const data = await response.json();
 
-      setProductos(data);
-      setMensaje("Catalogo cargado correctamente.");
+      setProducts(data);
     } catch (error) {
-      console.error(error);
-
-      setMensaje(
+      setMessage(
         error instanceof Error
           ? error.message
-          : "Error al cargar el catalogo.",
+          : "Error al cargar productos",
       );
     } finally {
-      setCargando(false);
+      setLoadingProducts(false);
     }
-  };
+  }
 
-  const cargarPedidos = async () => {
-    if (!token) {
-      setMensaje("No hay token de acceso.");
+  async function cargarPedidos() {
+    if (!accessToken) {
+      setOrderMessage(
+        "No hay token disponible",
+      );
       return;
     }
 
     try {
-      setCargando(true);
-      setMensaje("");
+      setLoadingOrders(true);
 
       const response = await apiFetch(
         "/api/orders",
-        token,
+        accessToken,
       );
 
       const data = await response.json();
 
-      setPedidos(data);
-      setMensaje("Pedidos cargados correctamente.");
+      setOrders(data);
     } catch (error) {
-      console.error(error);
-
-      setMensaje(
+      setOrderMessage(
         error instanceof Error
           ? error.message
-          : "Error al cargar los pedidos.",
+          : "Error al cargar pedidos",
       );
     } finally {
-      setCargando(false);
+      setLoadingOrders(false);
     }
-  };
+  }
 
-  const crearPedido = async () => {
-    if (!token) {
-      setMensaje("No hay token de acceso.");
+  async function crearPedido() {
+    if (!accessToken) {
+      setOrderMessage(
+        "No hay token disponible",
+      );
       return;
     }
 
     try {
-      setCargando(true);
-      setMensaje("");
+      setOrderMessage("");
 
       const response = await apiFetch(
         "/api/orders",
-        token,
+        accessToken,
         {
           method: "POST",
           body: JSON.stringify({
@@ -129,39 +121,38 @@ function App() {
         },
       );
 
-      const nuevoPedido = await response.json();
-
-      setMensaje(
-        `Pedido #${nuevoPedido.id} creado correctamente.`,
-      );
+      const data = await response.json();
 
       await cargarPedidos();
-    } catch (error) {
-      console.error(error);
 
-      setMensaje(
+      setOrderMessage(
+        `Pedido ${data.id} creado correctamente`,
+      );
+    } catch (error) {
+      setOrderMessage(
         error instanceof Error
           ? error.message
-          : "Error al crear el pedido.",
+          : "Error al crear pedido",
       );
-    } finally {
-      setCargando(false);
     }
-  };
+  }
 
-  const marcarComoPagado = async (id: number) => {
-    if (!token) {
-      setMensaje("No hay token de acceso.");
+  async function marcarComoPagado(
+    id: number,
+  ) {
+    if (!accessToken) {
+      setOrderMessage(
+        "No hay token disponible",
+      );
       return;
     }
 
     try {
-      setCargando(true);
-      setMensaje("");
+      setOrderMessage("");
 
       await apiFetch(
         `/api/orders/${id}/status`,
-        token,
+        accessToken,
         {
           method: "PATCH",
           body: JSON.stringify({
@@ -170,318 +161,291 @@ function App() {
         },
       );
 
-      setMensaje(
-        `Pedido #${id} actualizado a PAID.`,
+      await cargarPedidos();
+
+      setOrderMessage(
+        `Pedido ${id} actualizado a PAID`,
+      );
+    } catch (error) {
+      setOrderMessage(
+        error instanceof Error
+          ? error.message
+          : "Error al actualizar pedido",
+      );
+    }
+  }
+
+  async function eliminarPedido(
+    id: number,
+  ) {
+    if (!accessToken) {
+      setOrderMessage(
+        "No hay token disponible",
+      );
+      return;
+    }
+
+    try {
+      setOrderMessage("");
+
+      await apiFetch(
+        `/api/orders/${id}`,
+        accessToken,
+        {
+          method: "DELETE",
+        },
       );
 
       await cargarPedidos();
-    } catch (error) {
-      console.error(error);
 
-      setMensaje(
+      setOrderMessage(
+        `Pedido ${id} eliminado correctamente`,
+      );
+    } catch (error) {
+      setOrderMessage(
         error instanceof Error
           ? error.message
-          : "Error al actualizar el pedido.",
+          : "Error al eliminar pedido",
       );
-    } finally {
-      setCargando(false);
     }
-  };
+  }
+
+  function cerrarSesion() {
+    auth.removeUser();
+
+    window.location.href =
+      cognitoLogoutUrl;
+  }
 
   if (auth.isLoading) {
     return (
-      <main className="app">
-        <section className="panel">
-          <h1>Urban Kicks</h1>
-          <p>Cargando autenticacion...</p>
-        </section>
+      <main>
+        <h1>Urban Kicks</h1>
+        <p>Cargando...</p>
       </main>
     );
   }
 
   if (auth.error) {
     return (
-      <main className="app">
-        <section className="panel">
-          <h1>Urban Kicks</h1>
+      <main>
+        <h1>Urban Kicks</h1>
 
-          <p>
-            Error de autenticacion:
-            {" "}
-            {auth.error.message}
-          </p>
+        <p>
+          Error de autenticacion:{" "}
+          {auth.error.message}
+        </p>
 
-          <button
-            onClick={() => auth.signinRedirect()}
-          >
-            Intentar nuevamente
-          </button>
-        </section>
+        <button
+          onClick={() => {
+            auth.signinRedirect();
+          }}
+        >
+          Intentar nuevamente
+        </button>
       </main>
     );
   }
 
   if (!auth.isAuthenticated) {
     return (
-      <main className="app">
-        <section className="panel login-panel">
-          <h1>Urban Kicks</h1>
+      <main>
+        <h1>Urban Kicks</h1>
 
-          <p>
-            Inicia sesion para acceder a la tienda.
-          </p>
+        <p>Tienda de zapatillas</p>
 
-          <button
-            onClick={() => auth.signinRedirect()}
-          >
-            Ingresar con Cognito
-          </button>
-        </section>
+        <button
+          onClick={() => {
+            auth.signinRedirect();
+          }}
+        >
+          Iniciar sesion
+        </button>
       </main>
     );
   }
 
+  const roles =
+    (auth.user?.profile[
+      "cognito:groups"
+    ] as string[]) || [];
+
+  const email =
+    auth.user?.profile.email?.toString() ||
+    "Usuario";
+
   return (
-    <main className="app">
-      <header className="topbar">
-        <div>
-          <h1>Urban Kicks</h1>
-          <p>Tienda de zapatillas</p>
-        </div>
+    <main>
+      <header>
+        <h1>Urban Kicks</h1>
 
-        <div className="user-info">
-          <span>{email}</span>
+        <p>Bienvenida, {email}</p>
 
-          <button onClick={cerrarSesion}>
-            Salir
-          </button>
-        </div>
+        <button onClick={cerrarSesion}>
+          Salir
+        </button>
       </header>
 
-      <nav className="navbar">
-        <a href="#inicio">
-          Inicio
-        </a>
+      <hr />
 
-        <a href="#catalogo">
-          Catalogo
-        </a>
+      <section>
+        <h2>Sesion</h2>
 
-        <a href="#pedidos">
-          Pedidos
-        </a>
+        <p>
+          <strong>Usuario:</strong>{" "}
+          {email}
+        </p>
 
-        {(roles.includes("admin") ||
-          roles.includes("colaborador")) && (
-          <a href="#gestion">
-            Gestion
-          </a>
-        )}
-      </nav>
-
-      <section
-        id="inicio"
-        className="panel hero"
-      >
-        <div>
-          <p className="tag">
-            URBAN KICKS
-          </p>
-
-          <h2>
-            Bienvenido a Urban Kicks
-          </h2>
-
-          <p>
-            Usuario autenticado correctamente
-            mediante Amazon Cognito.
-          </p>
-
-          <p>
-            <strong>Correo:</strong>
-            {" "}
-            {email}
-          </p>
-
-          <p>
-            <strong>Roles:</strong>
-            {" "}
-            {roles.length > 0
-              ? roles.join(", ")
-              : "Sin roles"}
-          </p>
-        </div>
+        <p>
+          <strong>Roles:</strong>{" "}
+          {roles.length > 0
+            ? roles.join(", ")
+            : "Sin roles"}
+        </p>
       </section>
 
-      {mensaje && (
-        <section className="mensaje">
-          {mensaje}
-        </section>
-      )}
+      <hr />
 
-      <section
-        id="catalogo"
-        className="panel"
-      >
-        <div className="section-header">
+      <section>
+        <h2>Catalogo</h2>
+
+        <button
+          onClick={cargarProductos}
+          disabled={loadingProducts}
+        >
+          {loadingProducts
+            ? "Cargando..."
+            : "Cargar productos"}
+        </button>
+
+        {products.length > 0 && (
           <div>
-            <p className="tag">
-              PRODUCTOS
-            </p>
+            {products.map(
+              (product) => (
+                <article
+                  key={product.id}
+                >
+                  <h3>
+                    {product.name}
+                  </h3>
 
-            <h2>Catalogo</h2>
-          </div>
-
-          <button
-            onClick={cargarProductos}
-            disabled={cargando}
-          >
-            {cargando
-              ? "Cargando..."
-              : "Cargar catalogo"}
-          </button>
-        </div>
-
-        {productos.length === 0 ? (
-          <p>
-            Presiona "Cargar catalogo" para
-            consultar los productos.
-          </p>
-        ) : (
-          <div className="cards">
-            {productos.map((producto) => (
-              <article
-                className="card"
-                key={producto.id}
-              >
-                <h3>{producto.name}</h3>
-
-                {producto.brand && (
                   <p>
-                    <strong>Marca:</strong>
-                    {" "}
-                    {producto.brand}
+                    Marca:{" "}
+                    {product.brand}
                   </p>
-                )}
 
-                {producto.size !== undefined && (
                   <p>
-                    <strong>Talla:</strong>
-                    {" "}
-                    {producto.size}
+                    Talla:{" "}
+                    {product.size}
                   </p>
-                )}
 
-                {producto.price !== undefined && (
                   <p>
-                    <strong>Precio:</strong>
-                    {" "}
-                    $
-                    {producto.price.toLocaleString(
+                    Precio: $
+                    {product.price.toLocaleString(
                       "es-CL",
                     )}
                   </p>
-                )}
 
-                {producto.stock !== undefined && (
                   <p>
-                    <strong>Stock:</strong>
-                    {" "}
-                    {producto.stock}
+                    Stock:{" "}
+                    {product.stock}
                   </p>
-                )}
-              </article>
-            ))}
+                </article>
+              ),
+            )}
           </div>
         )}
       </section>
 
-      <RoleGuard>
-        <section
-          id="pedidos"
-          className="panel"
-        >
-          <div className="section-header">
-            <div>
-              <p className="tag">
-                PEDIDOS
-              </p>
+      <hr />
 
-              <h2>Mis pedidos</h2>
-            </div>
+      <section>
+        <h2>Pedidos</h2>
 
-            <div>
-              <button
-                onClick={cargarPedidos}
-                disabled={cargando}
-              >
-                Ver pedidos
-              </button>
+        <div>
+          <button
+            onClick={cargarPedidos}
+            disabled={loadingOrders}
+          >
+            {loadingOrders
+              ? "Cargando..."
+              : "Cargar pedidos"}
+          </button>
 
-              <button
-                onClick={crearPedido}
-                disabled={cargando}
-              >
-                Crear pedido
-              </button>
-            </div>
-          </div>
+          <button
+            onClick={crearPedido}
+          >
+            Crear pedido
+          </button>
+        </div>
 
-          {pedidos.length === 0 ? (
-            <p>
-              No hay pedidos para mostrar.
-            </p>
-          ) : (
-            <div className="cards">
-              {pedidos.map((pedido) => (
+        {orderMessage && (
+          <p>
+            <strong>
+              Resultado:
+            </strong>{" "}
+            {orderMessage}
+          </p>
+        )}
+
+        {orders.length === 0 ? (
+          <p>
+            No hay pedidos cargados.
+          </p>
+        ) : (
+          <div>
+            {orders.map(
+              (order) => (
                 <article
-                  className="card"
-                  key={pedido.id}
+                  key={order.id}
                 >
                   <h3>
-                    Pedido #{pedido.id}
+                    Pedido #{order.id}
                   </h3>
 
-                  {pedido.product && (
-                    <p>
-                      <strong>Producto:</strong>
-                      {" "}
-                      {pedido.product}
-                    </p>
-                  )}
-
-                  {pedido.quantity !== undefined && (
-                    <p>
-                      <strong>Cantidad:</strong>
-                      {" "}
-                      {pedido.quantity}
-                    </p>
-                  )}
-
                   <p>
-                    <strong>Estado:</strong>
-                    {" "}
-                    {pedido.status || "CREATED"}
+                    Producto:{" "}
+                    {order.product}
                   </p>
 
-                  {pedido.status !== "PAID" && (
+                  <p>
+                    Cantidad:{" "}
+                    {order.quantity}
+                  </p>
+
+                  <p>
+                    Estado:{" "}
+                    {order.status}
+                  </p>
+
+                  {order.status !==
+                    "PAID" && (
                     <button
                       onClick={() =>
                         marcarComoPagado(
-                          pedido.id,
+                          order.id,
                         )
                       }
-                      disabled={cargando}
                     >
                       Marcar como pagado
                     </button>
                   )}
+
+                  <button
+                    onClick={() =>
+                      eliminarPedido(
+                        order.id,
+                      )
+                    }
+                  >
+                    Eliminar pedido
+                  </button>
                 </article>
-              ))}
-            </div>
-          )}
-        </section>
-      </RoleGuard>
+              ),
+            )}
+          </div>
+        )}
+      </section>
 
       <RoleGuard
         allowedRoles={[
@@ -489,31 +453,33 @@ function App() {
           "colaborador",
         ]}
       >
-        <section
-          id="gestion"
-          className="panel"
-        >
-          <p className="tag">
-            ADMINISTRACION
-          </p>
+        <hr />
 
+        <section>
           <h2>Gestion</h2>
 
           <p>
-            Esta seccion esta disponible
-            solamente para administradores
-            y colaboradores.
+            Esta seccion solo esta
+            disponible para usuarios
+            autorizados.
           </p>
 
           <ServiciosPanel />
         </section>
       </RoleGuard>
 
-      <footer>
-        <p>
-          Urban Kicks - Cloud Native
-        </p>
-      </footer>
+      {message && (
+        <>
+          <hr />
+
+          <p>
+            <strong>
+              Resultado:
+            </strong>{" "}
+            {message}
+          </p>
+        </>
+      )}
     </main>
   );
 }
