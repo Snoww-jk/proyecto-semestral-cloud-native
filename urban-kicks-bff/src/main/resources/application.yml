@@ -9,6 +9,9 @@ spring:
           issuer-uri: ${COGNITO_ISSUER_URI}
 
 urban-kicks:
+  security:
+    client-id: ${COGNITO_CLIENT_ID}
+
   services:
     catalog: ${CATALOG_URL:http://localhost:8082}
     orders: ${ORDERS_URL:http://localhost:8081}
