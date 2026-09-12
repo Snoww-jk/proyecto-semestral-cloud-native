@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/orders")
@@ -44,7 +45,12 @@ public class OrderController {
                         )
                 )
                 .findFirst()
-                .orElseThrow();
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Pedido no encontrado"
+                        )
+                );
     }
 
     @PostMapping
@@ -91,7 +97,12 @@ public class OrderController {
 
                     return order;
                 })
-                .orElseThrow();
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Pedido no encontrado"
+                        )
+                );
     }
 
     @DeleteMapping("/{id}")
@@ -108,7 +119,8 @@ public class OrderController {
                 );
 
         if (!removed) {
-            throw new RuntimeException(
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
                     "Pedido no encontrado"
             );
         }
