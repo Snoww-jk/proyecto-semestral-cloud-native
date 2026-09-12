@@ -16,25 +16,61 @@ public class BffController {
     @Value("${urban-kicks.services.orders}")
     private String ordersUrl;
 
+    @Value("${urban-kicks.services.notify}")
+    private String notifyUrl;
+
+    @Value("${urban-kicks.services.report}")
+    private String reportUrl;
+
+    @Value("${urban-kicks.services.audit}")
+    private String auditUrl;
+
+    // PUBLICO
     @GetMapping("/public/hello")
     public String hello() {
         return "Urban-Kicks API";
     }
 
+    // USUARIO AUTENTICADO
     @GetMapping("/private/hello")
     public String privateHello() {
         return "Usuario autenticado";
     }
 
+    // ADMIN
     @GetMapping("/admin/hello")
     public String adminHello() {
         return "Acceso administrador";
     }
 
+    // =========================
+    // CATALOGO
+    // =========================
+
     @GetMapping("/catalog/products")
     public String products() {
         return restClient.get()
                 .uri(catalogUrl + "/products")
+                .retrieve()
+                .body(String.class);
+    }
+
+    @GetMapping("/catalog/products/{id}")
+    public String productById(@PathVariable Long id) {
+        return restClient.get()
+                .uri(catalogUrl + "/products/" + id)
+                .retrieve()
+                .body(String.class);
+    }
+
+    // =========================
+    // PEDIDOS
+    // =========================
+
+    @GetMapping("/orders")
+    public String getOrders() {
+        return restClient.get()
+                .uri(ordersUrl + "/orders")
                 .retrieve()
                 .body(String.class);
     }
@@ -49,14 +85,6 @@ public class BffController {
                 .body(String.class);
     }
 
-    @GetMapping("/orders")
-    public String getOrders() {
-        return restClient.get()
-                .uri(ordersUrl + "/orders")
-                .retrieve()
-                .body(String.class);
-    }
-
     @PatchMapping("/orders/{id}/status")
     public String updateOrderStatus(
             @PathVariable Long id,
@@ -64,6 +92,54 @@ public class BffController {
     ) {
         return restClient.patch()
                 .uri(ordersUrl + "/orders/" + id + "/status")
+                .header("Content-Type", "application/json")
+                .body(body)
+                .retrieve()
+                .body(String.class);
+    }
+
+    // =========================
+    // NOTIFICACIONES
+    // =========================
+
+    @PostMapping("/notifications")
+    public String createNotification(@RequestBody String body) {
+        return restClient.post()
+                .uri(notifyUrl + "/notifications")
+                .header("Content-Type", "application/json")
+                .body(body)
+                .retrieve()
+                .body(String.class);
+    }
+
+    // =========================
+    // REPORTES
+    // =========================
+
+    @GetMapping("/reports/summary")
+    public String getReportSummary() {
+        return restClient.get()
+                .uri(reportUrl + "/reports/summary")
+                .retrieve()
+                .body(String.class);
+    }
+
+    // =========================
+    // AUDITORIA
+    // =========================
+
+    @GetMapping("/audit")
+    public String getAudit() {
+        return restClient.get()
+                .uri(auditUrl + "/audit")
+                .retrieve()
+                .body(String.class);
+    }
+
+    @PostMapping("/audit")
+    public String createAudit(@RequestBody String body) {
+        return restClient.post()
+                .uri(auditUrl + "/audit")
                 .header("Content-Type", "application/json")
                 .body(body)
                 .retrieve()
