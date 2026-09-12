@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "react-oidc-context";
 import { apiFetch } from "./api";
+import { cognitoLogoutUrl } from "./authConfig";
 import "./App.css";
 
 interface Product {
@@ -30,6 +31,11 @@ function App() {
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [orderError, setOrderError] = useState("");
   const [orderMessage, setOrderMessage] = useState("");
+
+  const cerrarSesion = async () => {
+    await auth.removeUser();
+    window.location.href = cognitoLogoutUrl;
+  };
 
   if (auth.isLoading) {
     return <h2>Cargando...</h2>;
@@ -218,7 +224,7 @@ function App() {
             {auth.isAuthenticated ? (
               <button
                 className="btn secondary"
-                onClick={() => auth.removeUser()}
+                onClick={cerrarSesion}
               >
                 Salir
               </button>
@@ -251,13 +257,10 @@ function App() {
 
           {auth.isAuthenticated && (
             <div>
-              <h3>
-                Bienvenida a Urban Kicks 👟
-              </h3>
+              <h3>Bienvenida a Urban Kicks 👟</h3>
 
               <p>
-                Usuario:{" "}
-                <strong>{email}</strong>
+                Usuario: <strong>{email}</strong>
               </p>
 
               <p>
@@ -335,8 +338,7 @@ function App() {
               {products.length === 0 &&
                 !loadingProducts && (
                   <p>
-                    Presiona "Ver productos"
-                    para cargar el catálogo.
+                    Presiona "Ver productos" para cargar el catálogo.
                   </p>
                 )}
             </>
@@ -383,9 +385,7 @@ function App() {
                   key={order.id}
                   className="product-card"
                 >
-                  <h3>
-                    Pedido #{order.id}
-                  </h3>
+                  <h3>Pedido #{order.id}</h3>
 
                   {order.product && (
                     <p>
@@ -400,7 +400,8 @@ function App() {
                   )}
 
                   <p>
-                    Estado: <strong>{order.status}</strong>
+                    Estado:{" "}
+                    <strong>{order.status}</strong>
                   </p>
 
                   {order.status !== "PAID" && (
@@ -436,8 +437,7 @@ function App() {
               <h2>Gestión</h2>
 
               <p>
-                Panel disponible para administradores
-                y colaboradores.
+                Panel disponible para administradores y colaboradores.
               </p>
             </section>
           )}
