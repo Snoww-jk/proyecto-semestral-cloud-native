@@ -144,6 +144,7 @@ public class SecurityConfig {
                         "GET",
                         "POST",
                         "PATCH",
+                        "DELETE",
                         "OPTIONS"
                 )
         );
