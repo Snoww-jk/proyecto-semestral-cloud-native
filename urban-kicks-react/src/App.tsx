@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "react-oidc-context";
 import { apiFetch } from "./api";
 import { cognitoLogoutUrl } from "./authConfig";
+import RoleGuard from "./RoleGuard";
 import "./App.css";
 
 interface Product {
@@ -323,9 +324,7 @@ function App() {
 
                     <p>
                       Precio: $
-                      {product.price.toLocaleString(
-                        "es-CL",
-                      )}
+                      {product.price.toLocaleString("es-CL")}
                     </p>
 
                     <p>
@@ -345,7 +344,7 @@ function App() {
           )}
         </section>
 
-        {auth.isAuthenticated && (
+        <RoleGuard>
           <section
             id="pedidos"
             className="card"
@@ -425,22 +424,25 @@ function App() {
                 </p>
               )}
           </section>
-        )}
+        </RoleGuard>
 
-        {auth.isAuthenticated &&
-          (roles.includes("admin") ||
-            roles.includes("colaborador")) && (
-            <section
-              id="gestion"
-              className="card"
-            >
-              <h2>Gestión</h2>
+        <RoleGuard
+          allowedRoles={[
+            "admin",
+            "colaborador",
+          ]}
+        >
+          <section
+            id="gestion"
+            className="card"
+          >
+            <h2>Gestión</h2>
 
-              <p>
-                Panel disponible para administradores y colaboradores.
-              </p>
-            </section>
-          )}
+            <p>
+              Panel disponible para administradores y colaboradores.
+            </p>
+          </section>
+        </RoleGuard>
       </main>
     </div>
   );
