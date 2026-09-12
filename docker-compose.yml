@@ -4,6 +4,7 @@ services:
     ports: ["8080:8080"]
     environment:
       COGNITO_ISSUER_URI: ${COGNITO_ISSUER_URI}
+      COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID}
       CATALOG_URL: http://catalog:8082
       ORDERS_URL: http://orders:8081
       NOTIFY_URL: http://notify:8083
