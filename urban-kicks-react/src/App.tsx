@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "react-oidc-context";
-import "./App.css";
 
+import "./App.css";
 import { apiFetch } from "./api";
 import { cognitoLogoutUrl } from "./authConfig";
 import RoleGuard from "./RoleGuard";
@@ -18,9 +18,13 @@ interface Product {
 
 interface Order {
   id: number;
-  product: string;
-  quantity: number;
+  userId: string;
   status: string;
+  total: number;
+  createdAt: string;
+  productId: number;
+  quantity: number;
+  price: number;
 }
 
 function App() {
@@ -36,7 +40,13 @@ function App() {
     useState(false);
 
   const [message, setMessage] = useState("");
-  const [orderMessage, setOrderMessage] = useState("");
+  const [orderMessage, setOrderMessage] =
+    useState("");
+
+  const [selectedProductId, setSelectedProductId] =
+    useState<number | null>(null);
+
+  const [quantity, setQuantity] = useState(1);
 
   const accessToken = auth.user?.access_token;
 
@@ -48,6 +58,7 @@ function App() {
 
     try {
       setLoadingProducts(true);
+      setMessage("");
 
       const response = await apiFetch(
         "/api/catalog/products",
@@ -78,6 +89,7 @@ function App() {
 
     try {
       setLoadingOrders(true);
+      setOrderMessage("");
 
       const response = await apiFetch(
         "/api/orders",
@@ -98,6 +110,23 @@ function App() {
     }
   }
 
+  function seleccionarProducto(
+    productId: number,
+  ) {
+    setSelectedProductId(productId);
+    setQuantity(1);
+
+    const product = products.find(
+      (item) => item.id === productId,
+    );
+
+    if (product) {
+      setOrderMessage(
+        `${product.name} seleccionado`,
+      );
+    }
+  }
+
   async function crearPedido() {
     if (!accessToken) {
       setOrderMessage(
@@ -106,8 +135,46 @@ function App() {
       return;
     }
 
+    if (selectedProductId === null) {
+      setOrderMessage(
+        "Primero selecciona un producto del catalogo",
+      );
+      return;
+    }
+
+    const selectedProduct = products.find(
+      (product) =>
+        product.id === selectedProductId,
+    );
+
+    if (!selectedProduct) {
+      setOrderMessage(
+        "No se encontro el producto seleccionado",
+      );
+      return;
+    }
+
+    if (quantity < 1) {
+      setOrderMessage(
+        "La cantidad debe ser mayor a 0",
+      );
+      return;
+    }
+
+    if (quantity > selectedProduct.stock) {
+      setOrderMessage(
+        "La cantidad supera el stock disponible",
+      );
+      return;
+    }
+
     try {
       setOrderMessage("");
+
+      const userId =
+        auth.user?.profile.sub?.toString() ||
+        auth.user?.profile.email?.toString() ||
+        "usuario-demo";
 
       const response = await apiFetch(
         "/api/orders",
@@ -115,8 +182,11 @@ function App() {
         {
           method: "POST",
           body: JSON.stringify({
-            product: "Air Runner",
-            quantity: 1,
+            userId,
+            productId: selectedProduct.id,
+            quantity,
+            price: selectedProduct.price,
+            status: "CREATED",
           }),
         },
       );
@@ -128,6 +198,9 @@ function App() {
       setOrderMessage(
         `Pedido ${data.id} creado correctamente`,
       );
+
+      setSelectedProductId(null);
+      setQuantity(1);
     } catch (error) {
       setOrderMessage(
         error instanceof Error
@@ -210,6 +283,20 @@ function App() {
     }
   }
 
+  function obtenerNombreProducto(
+    productId: number,
+  ) {
+    const product = products.find(
+      (item) => item.id === productId,
+    );
+
+    if (product) {
+      return product.name;
+    }
+
+    return `Producto #${productId}`;
+  }
+
   function cerrarSesion() {
     auth.removeUser();
 
@@ -251,7 +338,6 @@ function App() {
     return (
       <main>
         <h1>Urban Kicks</h1>
-
         <p>Tienda de zapatillas</p>
 
         <button
@@ -274,12 +360,20 @@ function App() {
     auth.user?.profile.email?.toString() ||
     "Usuario";
 
+  const selectedProduct =
+    products.find(
+      (product) =>
+        product.id === selectedProductId,
+    ) || null;
+
   return (
     <main>
       <header>
         <h1>Urban Kicks</h1>
 
-        <p>Bienvenida, {email}</p>
+        <p>
+          Bienvenida, {email}
+        </p>
 
         <button onClick={cerrarSesion}>
           Salir
@@ -350,6 +444,22 @@ function App() {
                     Stock:{" "}
                     {product.stock}
                   </p>
+
+                  <button
+                    onClick={() =>
+                      seleccionarProducto(
+                        product.id,
+                      )
+                    }
+                    disabled={
+                      product.stock <= 0
+                    }
+                  >
+                    {selectedProductId ===
+                    product.id
+                      ? "Seleccionado"
+                      : "Seleccionar"}
+                  </button>
                 </article>
               ),
             )}
@@ -362,6 +472,62 @@ function App() {
       <section>
         <h2>Pedidos</h2>
 
+        {selectedProduct && (
+          <article>
+            <h3>
+              Nuevo pedido
+            </h3>
+
+            <p>
+              Producto:{" "}
+              {selectedProduct.name}
+            </p>
+
+            <p>
+              Precio unitario: $
+              {selectedProduct.price.toLocaleString(
+                "es-CL",
+              )}
+            </p>
+
+            <label>
+              Cantidad:{" "}
+
+              <input
+                type="number"
+                min="1"
+                max={
+                  selectedProduct.stock
+                }
+                value={quantity}
+                onChange={(event) =>
+                  setQuantity(
+                    Number(
+                      event.target.value,
+                    ),
+                  )
+                }
+              />
+            </label>
+
+            <p>
+              Total: $
+              {(
+                selectedProduct.price *
+                quantity
+              ).toLocaleString(
+                "es-CL",
+              )}
+            </p>
+
+            <button
+              onClick={crearPedido}
+            >
+              Crear pedido
+            </button>
+          </article>
+        )}
+
         <div>
           <button
             onClick={cargarPedidos}
@@ -370,12 +536,6 @@ function App() {
             {loadingOrders
               ? "Cargando..."
               : "Cargar pedidos"}
-          </button>
-
-          <button
-            onClick={crearPedido}
-          >
-            Crear pedido
           </button>
         </div>
 
@@ -405,12 +565,37 @@ function App() {
 
                   <p>
                     Producto:{" "}
-                    {order.product}
+                    {obtenerNombreProducto(
+                      order.productId,
+                    )}
+                  </p>
+
+                  <p>
+                    ID producto:{" "}
+                    {order.productId}
                   </p>
 
                   <p>
                     Cantidad:{" "}
                     {order.quantity}
+                  </p>
+
+                  <p>
+                    Precio unitario: $
+                    {Number(
+                      order.price,
+                    ).toLocaleString(
+                      "es-CL",
+                    )}
+                  </p>
+
+                  <p>
+                    Total: $
+                    {Number(
+                      order.total,
+                    ).toLocaleString(
+                      "es-CL",
+                    )}
                   </p>
 
                   <p>

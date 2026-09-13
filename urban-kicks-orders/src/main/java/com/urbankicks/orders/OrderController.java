@@ -1,11 +1,7 @@
 package com.urbankicks.orders;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -17,40 +13,29 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/orders")
 public class OrderController {
 
-    private final AtomicLong ids = new AtomicLong(1000);
+    private final OrderService orderService;
 
-    private final List<Map<String, Object>> orders =
-            new ArrayList<>();
+    public OrderController(
+            OrderService orderService
+    ) {
+        this.orderService = orderService;
+    }
 
     @GetMapping
     public List<Map<String, Object>> all() {
-        return orders;
+        return orderService.findAll();
     }
 
     @GetMapping("/{id}")
     public Map<String, Object> findById(
-            @PathVariable long id
+            @PathVariable Long id
     ) {
-        return orders.stream()
-                .filter(order ->
-                        Objects.equals(
-                                order.get("id"),
-                                id
-                        )
-                )
-                .findFirst()
-                .orElseThrow(() ->
-                        new ResponseStatusException(
-                                HttpStatus.NOT_FOUND,
-                                "Pedido no encontrado"
-                        )
-                );
+        return orderService.findById(id);
     }
 
     @PostMapping
@@ -58,71 +43,25 @@ public class OrderController {
     public Map<String, Object> create(
             @RequestBody Map<String, Object> body
     ) {
-        Map<String, Object> order =
-                new LinkedHashMap<>(body);
-
-        order.put(
-                "id",
-                ids.incrementAndGet()
-        );
-
-        order.putIfAbsent(
-                "status",
-                "CREATED"
-        );
-
-        orders.add(order);
-
-        return order;
+        return orderService.create(body);
     }
 
     @PatchMapping("/{id}/status")
     public Map<String, Object> updateStatus(
-            @PathVariable long id,
+            @PathVariable Long id,
             @RequestBody Map<String, String> body
     ) {
-        return orders.stream()
-                .filter(order ->
-                        Objects.equals(
-                                order.get("id"),
-                                id
-                        )
-                )
-                .findFirst()
-                .map(order -> {
-                    order.put(
-                            "status",
-                            body.get("status")
-                    );
-
-                    return order;
-                })
-                .orElseThrow(() ->
-                        new ResponseStatusException(
-                                HttpStatus.NOT_FOUND,
-                                "Pedido no encontrado"
-                        )
-                );
+        return orderService.updateStatus(
+                id,
+                body
+        );
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(
-            @PathVariable long id
+            @PathVariable Long id
     ) {
-        boolean removed =
-                orders.removeIf(order ->
-                        Objects.equals(
-                                order.get("id"),
-                                id
-                        )
-                );
-
-        if (!removed) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Pedido no encontrado"
-            );
-        }
+        orderService.delete(id);
     }
 }
