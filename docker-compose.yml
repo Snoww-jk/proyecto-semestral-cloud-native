@@ -50,3 +50,7 @@ services:
     build: ./urban-kicks-audit
     ports:
       - "8085:8085"
+    environment:
+      DB_URL: ${AUDIT_DB_URL}
+      DB_USER: ${AUDIT_DB_USER}
+      DB_PASSWORD: ${AUDIT_DB_PASSWORD}
