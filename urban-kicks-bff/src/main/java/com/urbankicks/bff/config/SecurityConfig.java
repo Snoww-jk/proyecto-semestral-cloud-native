@@ -62,7 +62,7 @@ public class SecurityConfig {
                         )
                         .hasAnyAuthority(
                                 "ROLE_admin",
-                                "ROLE_operator"
+                                "ROLE_colaborador"
                         )
 
                         .requestMatchers(
