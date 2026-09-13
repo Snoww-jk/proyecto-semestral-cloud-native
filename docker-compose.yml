@@ -45,6 +45,12 @@ services:
     build: ./urban-kicks-report
     ports:
       - "8084:8084"
+    environment:
+      ORDERS_URL: http://orders:8081
+      CATALOG_URL: http://catalog:8082
+    depends_on:
+      - orders
+      - catalog
 
   audit:
     build: ./urban-kicks-audit
