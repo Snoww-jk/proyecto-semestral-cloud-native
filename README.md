@@ -1,4 +1,4 @@
-# Urban Kicks - Cloud Native Architecture
+# Urban Kicks - Cloud Native Architecture.
 
 Proyecto semestral desarrollado para la asignatura **Desarrollo Cloud Native I (DSY1107)**.
 
